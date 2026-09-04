@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env.*
+*secret*
+*credential*
+*.pem
+*.key
+.factory/runs/
+.factory/locks-runtime/
+node_modules/
+scratch/

@@ -1,0 +1,83 @@
+body {
+  font-family: system-ui, 'Segoe UI', Tahoma, sans-serif;
+  background: #fdf6ec;
+  color: #333;
+  margin: 0;
+}
+
+#app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: center;
+}
+
+.letter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 0.75rem;
+}
+
+.letter-tile {
+  font-size: 2rem;
+  padding: 1rem;
+  border: 3px solid #f0a500;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  min-width: 75px;
+  min-height: 75px;
+}
+
+.letter-tile.studied {
+  border-color: #2e8b57;
+  background: #e8f6ee;
+}
+
+.letter-tile .check {
+  display: block;
+  font-size: 1rem;
+}
+
+.big-letter {
+  font-size: 6rem;
+  direction: ltr;
+}
+
+.word-card img {
+  max-width: 200px;
+  display: block;
+  margin: 0.5rem auto;
+}
+
+button.action {
+  font-size: 1.25rem;
+  padding: 0.75rem 1.5rem;
+  margin: 0.5rem;
+  border-radius: 10px;
+  border: none;
+  background: #f0a500;
+  color: #fff;
+  cursor: pointer;
+  min-height: 75px;
+}
+
+.quiz-options button {
+  display: block;
+  width: 100%;
+  margin: 0.5rem 0;
+  font-size: 2rem;
+  direction: ltr;
+}
+
+#trace-canvas {
+  border: 3px dashed #f0a500;
+  border-radius: 12px;
+  background: #fff;
+  touch-action: none;
+  display: block;
+  margin: 0 auto;
+}
+
+.feedback.correct { color: #2e8b57; }
+.feedback.wrong { color: #c0392b; }

@@ -1,0 +1,54 @@
+{
+  "_what_this_is": "The deliberate defects the gate is measured against. Each entry: one textual mutation applied to real source in a throwaway copy; the gate MUST go red. An escaped defect is a class of bug that can currently merge unreviewed. NOT_INJECTED (anchor moved) is a failure too - a defect that tests nothing reports as a perfect score for doing nothing.",
+  "defects": [
+    {
+      "id": "quiz-answer-always-same-slot",
+      "file": "src/quiz.js",
+      "find": "const options = shuffle([letter, ...distractors], rng);",
+      "replace": "const options = [letter, ...distractors];",
+      "why": "the interview's fear: correct answer always position 0 - kids learn to tap the slot, not the letter. Must be caught by the unit distribution test AND holdout S3."
+    },
+    {
+      "id": "progress-never-persisted",
+      "file": "src/progress.js",
+      "find": "storage.setItem(KEY, JSON.stringify(state));",
+      "replace": "void state; // mutated: the save never happens",
+      "why": "everything works until the browser closes, then all progress is gone. Must be caught by the restart unit test AND the E2E reload step."
+    },
+    {
+      "id": "tracing-never-completes",
+      "file": "src/tracing.js",
+      "find": "return drawn >= targetLength;",
+      "replace": "return false;",
+      "why": "the canvas registers strokes but tracing never completes, so the quiz never appears - the main path silently dead-ends. Must be caught by unit AND E2E."
+    },
+    {
+      "id": "wrong-word-for-letter",
+      "file": "content/letters.js",
+      "find": "word: 'Apple',",
+      "replace": "word: 'Banana',",
+      "why": "the app actively teaches a wrong letter-word mapping to a child. Must be caught by content validation AND holdout S4."
+    },
+    {
+      "id": "audio-quietly-missing",
+      "file": "content/letters.js",
+      "find": "audio: 'assets/audio/A.m4a',",
+      "replace": "audio: 'assets/audio/A-removed.m4a',",
+      "why": "the audio button does nothing - no error a child can act on. Must be caught by content validation (file must exist) AND the E2E audio step."
+    },
+    {
+      "id": "arabic-field-not-arabic",
+      "file": "content/letters.js",
+      "find": "arabic: 'تفاحة',",
+      "replace": "arabic: 'apple',",
+      "why": "teaching content in the wrong language on an Arabic-UI screen. Must be caught by content validation AND holdout S4."
+    },
+    {
+      "id": "a-letter-dropped-from-the-grid",
+      "file": "content/letters.js",
+      "find": "  { letter: 'Z', lowercase: 'z' },",
+      "replace": "",
+      "why": "25 tiles render and everything looks fine unless something counts. Must be caught by content validation (26 required) AND the E2E grid assertion."
+    }
+  ]
+}

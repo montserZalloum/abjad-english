@@ -1,0 +1,7 @@
+{
+  "_what_this_is": "THE RATCHET. PROTECTED - only a human commit moves these numbers. The gate asserts observed >= floor, and floor(head) >= floor(base), so 'delete the assertion and lower the floor in the same commit' is not available.",
+  "e2e_steps_asserted": 19,
+  "holdout_assertions": 17,
+  "unit_tests": 11,
+  "_raise_these": "On the same human commit that adds the assertions. If you find yourself lowering one, the question is what stopped being true."
+}

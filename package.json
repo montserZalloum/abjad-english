@@ -1,0 +1,17 @@
+{
+  "name": "abjad-english",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "أبجد إنجليزي — Arabic-UI web app teaching the 26 English letters to Arabic-speaking children",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "validate": "node scripts/validateContent.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "python3 harness/ci.py",
+    "check:quick": "python3 harness/ci.py --quick"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

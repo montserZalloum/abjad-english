@@ -1,0 +1,25 @@
+{
+  "_what_this_is": [
+    "The stack-specific half of the harness, in one file.",
+    "ci.py is the step ladder - the same in every factory. What is NOT the same is",
+    "every command it runs, and those live here. Leave a step empty and it is SKIPPED",
+    "LOUDLY, never silently."
+  ],
+  "static": "node scripts/validateContent.mjs",
+  "unit": "npm test --silent",
+  "_unit_count_pattern": "One group capturing how many tests passed. node --test prints 'ℹ pass N'. Zero is not a pass.",
+  "unit_count_pattern": "pass (\\d+)",
+  "driver": "http",
+  "e2e_timeout_s": 300,
+  "http": {
+    "start": "node scripts/serve.mjs {port}",
+    "health_path": "/",
+    "health_contains": "أبجد إنجليزي",
+    "boot_timeout_s": 30
+  },
+  "browser": {
+    "_note": "The E2E and holdout drive headless Chrome over CDP (harness/browser.mjs), the pattern from letter-islands. install_check runs at setup via factory_doctor.",
+    "install_check": "test -x \"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\"",
+    "install_hint": "Install Google Chrome, or set CHROME to another Chromium binary"
+  }
+}
