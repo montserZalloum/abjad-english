@@ -83,15 +83,27 @@ try {
     JSON.stringify(saved));
 
   // The detour: leave the letter (trace screen → letter screen → grid), visit a
-  // stub letter, come back via the grid.
+  // stub letter (whichever is still a stub - letters complete over time, so the
+  // stub is found, never hardcoded), come back via the grid.
   await browser.tap('#back-letter');
   await browser.tap('#back-grid');
-  await browser.tap('[data-letter="B"]');
-  const stubShown = await browser.evaluate(
-    `(document.getElementById('coming-soon')?.textContent ?? '')`);
-  expect('S2 a stub letter shows coming-soon, not broken content',
-    stubShown.includes('قريباً'), stubShown);
-  await browser.tap('#back-grid');
+  const stub = await browser.evaluate(
+    `(async () => { const m = await import('/content/letters.js');
+      const s = m.LETTERS.find((e) => !m.isComplete(e));
+      return s ? s.letter : null; })()`);
+  if (stub) {
+    await browser.tap(`[data-letter="${stub}"]`);
+    const stubShown = await browser.evaluate(
+      `(document.getElementById('coming-soon')?.textContent ?? '')`);
+    expect('S2 a stub letter shows coming-soon, not broken content',
+      stubShown.includes('قريباً'), stubShown);
+    await browser.tap('#back-grid');
+  } else {
+    // No stubs left: the alphabet is complete. Assert the stronger thing.
+    const allStudied = await browser.evaluate(
+      `document.querySelectorAll('#letter-grid .letter-tile').length === 26`);
+    expect('S2 no stubs remain and all 26 tiles render', allStudied);
+  }
   const stillMarked = await browser.evaluate(
     `document.querySelector('[data-letter="A"]').classList.contains('studied')`);
   expect('S2 A still studied after the detour', stillMarked);
