@@ -34,11 +34,11 @@ command -v factory_notify >/dev/null 2>&1 || factory_notify() {
 # record on the file backend and posts a comment on the GitHub one. The gate's reasoning
 # has to land somewhere a human will actually look, and on GitHub that is the PR, not a
 # file in .factory that nobody opens.
-note() { python factory/state.py comment "$PR_FILE"; }
+note() { python3 factory/state.py comment "$PR_FILE"; }
 
 fail() {
   echo "GATE_FAIL: $*" >&2
-  python factory/state.py set "$PR_FILE" state=needs-human >/dev/null 2>&1 || true
+  python3 factory/state.py set "$PR_FILE" state=needs-human >/dev/null 2>&1 || true
 
   # FACTORY_RULES.md 7: escalation stops factory activity on that PR **and its issue**,
   # and it is written to .factory/needs-human.md. Neither happened. This script escalated
@@ -50,9 +50,9 @@ fail() {
   # A blocked gate is the single most important thing a human can be told, and for a
   # while this path wrote a file and stopped there.
   factory_notify "$PR_FILE" "(gate) $*"
-  ISSUE_REF="$(python factory/state.py get "$PR_FILE" 2>/dev/null | grep '^issue=' | head -1 | cut -d= -f2- || true)"
+  ISSUE_REF="$(python3 factory/state.py get "$PR_FILE" 2>/dev/null | grep '^issue=' | head -1 | cut -d= -f2- || true)"
   if [ -n "${ISSUE_REF:-}" ]; then
-    python factory/state.py set "$ISSUE_REF" state=needs-human >/dev/null 2>&1 || true
+    python3 factory/state.py set "$ISSUE_REF" state=needs-human >/dev/null 2>&1 || true
     echo "- $(date -u +%FT%TZ)  $ISSUE_REF  (gate)  its PR $PR_FILE was blocked: $*" >> .factory/needs-human.md
   fi
   {
@@ -72,7 +72,7 @@ fail() {
 # tripwire clears and before any check runs. Asserted rather than assumed: if this can be
 # called on an `open` PR, then it can be called on a PR nobody independently validated,
 # and the state machine is the only thing that knows the difference.
-PR_STATE="$(python factory/state.py get "$PR_FILE" | grep '^state=' | cut -d= -f2)"
+PR_STATE="$(python3 factory/state.py get "$PR_FILE" | grep '^state=' | cut -d= -f2)"
 if [ "$PR_STATE" != "validating" ]; then
   echo "GATE_REFUSED: $PR_FILE is '$PR_STATE', expected 'validating'." >&2
   echo "  The gate runs INSIDE the validate-pr workflow, after the tripwire and after" >&2
@@ -115,7 +115,7 @@ echo "MARKERS_OK checked=$(echo "$FACTORY_REQUIRED_MARKERS" | wc -w | tr -d ' ')
 # legitimate starting configuration and not a silent one - it is reported below.
 FLOOR=0
 if [ -f "$FACTORY_E2E_FLOOR_FILE" ]; then
-  FLOOR=$(python -c "import json,sys;print(json.load(open(sys.argv[1])).get(sys.argv[2],0))" \
+  FLOOR=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get(sys.argv[2],0))" \
             "$FACTORY_E2E_FLOOR_FILE" "$FACTORY_E2E_FLOOR_KEY" 2>/dev/null || echo 0)
 fi
 STEPS=$(grep -oE 'E2E_PASSED steps=[0-9]+' "$LOG" | tail -1 | grep -oE '[0-9]+$' || echo 0)
@@ -190,7 +190,7 @@ ASSUMPTION_FILE=".factory/assumptions/$(basename "${PR_FILE%.md}" | sed 's/^gh-p
 ASSUMPTIONS=""
 [ -s "$ASSUMPTION_FILE" ] && ASSUMPTIONS="$(cat "$ASSUMPTION_FILE")"
 if [ -z "$ASSUMPTIONS" ]; then
-  ISSUE_FOR_ASSUMPTIONS="$(python factory/state.py get "$PR_FILE" 2>/dev/null | grep '^issue=' | head -1 | cut -d= -f2- || true)"
+  ISSUE_FOR_ASSUMPTIONS="$(python3 factory/state.py get "$PR_FILE" 2>/dev/null | grep '^issue=' | head -1 | cut -d= -f2- || true)"
   if [ -n "${ISSUE_FOR_ASSUMPTIONS:-}" ]; then
     A2=".factory/assumptions/$(basename "${ISSUE_FOR_ASSUMPTIONS%.md}" | tr ':' '-').txt"
     [ -s "$A2" ] && ASSUMPTIONS="$(cat "$A2")"
@@ -203,16 +203,16 @@ fi
 
 # --- 4. the verdict ----------------------------------------------------------
 [ -s "$VERDICT" ] || fail "verdict file is empty or missing - the judge step produced nothing, which is not an approval"
-python -c "import json,sys;json.load(open(sys.argv[1]))['verdict']" "$VERDICT" \
+python3 -c "import json,sys;json.load(open(sys.argv[1]))['verdict']" "$VERDICT" \
   || fail "verdict file is not parseable JSON with a .verdict field"
 
-DECISION=$(python -c "import json,sys;print(json.load(open(sys.argv[1]))['verdict'])" "$VERDICT")
-SUMMARY=$(python -c "import json,sys;print(json.load(open(sys.argv[1])).get('summary','no summary'))" "$VERDICT")
+DECISION=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['verdict'])" "$VERDICT")
+SUMMARY=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get('summary','no summary'))" "$VERDICT")
 
 case "$DECISION" in
   approve)
     if [ "$AUTOMERGE_ALLOWED" -eq 0 ]; then
-      python factory/state.py set "$PR_FILE" state=passed \
+      python3 factory/state.py set "$PR_FILE" state=passed \
         || fail "the gate passed but the verdict could not be recorded on $PR_FILE"
       {
         echo "## Factory Gate: PASS, merge HELD"
@@ -253,7 +253,7 @@ case "$DECISION" in
     # reachable for an ordinary reason: on the GitHub backend this write is a label
     # edit, and `factory:approved` did not exist on a fresh repo. So the FIRST green
     # gate a new factory ever produced died here, silently, having decided to merge.
-    python factory/state.py set "$PR_FILE" state=passed \
+    python3 factory/state.py set "$PR_FILE" state=passed \
       || fail "the gate passed but the verdict could not be recorded on $PR_FILE; refusing to merge something whose state was never written"
     MUT_NOTE=""
     [ "$MT" -gt 0 ] && MUT_NOTE=", mutations $MC/$MT"
@@ -279,13 +279,13 @@ case "$DECISION" in
     cp "$LOG"     ".factory/findings/$FINDINGS_KEY.gate.log" 2>/dev/null || true
     echo "FINDINGS_SAVED .factory/findings/$FINDINGS_KEY.json"
 
-    python factory/state.py set "$PR_FILE" state=failed \
+    python3 factory/state.py set "$PR_FILE" state=failed \
       || fail "changes were requested but the state could not be written; the fix loop would never see this PR"
     { echo "## Factory Validation: changes requested"; echo ""; echo "$SUMMARY"; } | note || true
     echo "CHANGES_REQUESTED pr=$PR_FILE"
     ;;
   reject)
-    python factory/state.py set "$PR_FILE" state=rejected \
+    python3 factory/state.py set "$PR_FILE" state=rejected \
       || fail "the PR was rejected but the state could not be written"
     { echo "## Factory Validation: REJECTED"; echo ""; echo "$SUMMARY"; } | note || true
     echo "REJECTED pr=$PR_FILE"

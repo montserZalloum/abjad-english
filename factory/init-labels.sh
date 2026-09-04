@@ -58,7 +58,7 @@ EOF
 # A hand-maintained list that has to agree with a dict in another file is a list with an
 # expiry date on it, so the agreement is now ASSERTED rather than remembered. The colours
 # and descriptions stay editorial; the NAMES are checked against the source of truth.
-EXPECTED="$(python - <<'PY' 2>/dev/null || true
+EXPECTED="$(python3 - <<'PY' 2>/dev/null || true
 import os, sys
 sys.path.insert(0, os.path.join(os.getcwd(), "factory"))
 try:

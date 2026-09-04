@@ -95,11 +95,11 @@ export FACTORY_RUN_ID="$RUN"
 # The teardown step in the YAML says `always: true`; bash does not honour a YAML comment,
 # and the final `cost.py record` line was unreachable on every escalation and every
 # blocked gate. A trap is what `always` actually means here.
-trap 'python factory/cost.py record "$RUN" >/dev/null 2>&1 || true' EXIT
+trap 'python3 factory/cost.py record "$RUN" >/dev/null 2>&1 || true' EXIT
 
 log() { echo "[$(date -u +%FT%TZ)] [$WORKFLOW/$TARGET] $*"; }
 
-state()   { python factory/state.py "$@"; }
+state()   { python3 factory/state.py "$@"; }
 # `|| true`, and it is the difference between an escalation and a silent death.
 #
 # Under `set -euo pipefail`, a `grep` that matches nothing returns 1, the pipeline
@@ -112,12 +112,12 @@ state()   { python factory/state.py "$@"; }
 # The check that handles the missing field was written correctly and was unreachable.
 # Same shape as a red gate that could never reach the fix node: the error path existed,
 # and the language got there first.
-read_fm() { python factory/state.py get "$2" 2>/dev/null | grep "^$1=" | head -1 | cut -d= -f2- || true; }
-note()    { python factory/state.py comment "$1"; }   # body on stdin
+read_fm() { python3 factory/state.py get "$2" 2>/dev/null | grep "^$1=" | head -1 | cut -d= -f2- || true; }
+note()    { python3 factory/state.py comment "$1"; }   # body on stdin
 
 escalate() {            # escalate <reason>
   log "ESCALATE: $*"
-  python factory/state.py set "$TARGET" state=needs-human || true
+  python3 factory/state.py set "$TARGET" state=needs-human || true
   echo "- $(date -u +%FT%TZ)  $TARGET  ($WORKFLOW)  $*" >> .factory/needs-human.md
 
   # AND THE ISSUE BEHIND IT. `gate.sh`'s fail() has done this for a while, with a comment
@@ -127,9 +127,9 @@ escalate() {            # escalate <reason>
   # carries on while an escalated piece of work sits in a state that means "being worked on"
   # and nothing is. FACTORY_RULES.md 7 says escalation stops activity on that issue AND its
   # PR; one of the three routes implemented it.
-  ESC_ISSUE="$(python factory/state.py get "$TARGET" 2>/dev/null | grep '^issue=' | head -1 | cut -d= -f2- || true)"
+  ESC_ISSUE="$(python3 factory/state.py get "$TARGET" 2>/dev/null | grep '^issue=' | head -1 | cut -d= -f2- || true)"
   if [ -n "${ESC_ISSUE:-}" ] && [ "$ESC_ISSUE" != "$TARGET" ]; then
-    python factory/state.py set "$ESC_ISSUE" state=needs-human >/dev/null 2>&1 || true
+    python3 factory/state.py set "$ESC_ISSUE" state=needs-human >/dev/null 2>&1 || true
     echo "- $(date -u +%FT%TZ)  $ESC_ISSUE  ($WORKFLOW)  its PR $TARGET escalated: $*" >> .factory/needs-human.md
   fi
 
@@ -142,7 +142,7 @@ escalate() {            # escalate <reason>
   log "$(factory_notify "$TARGET" "($WORKFLOW) $*")"
   if [ "$GH" -eq 1 ]; then
     # Assembled in one process, like every other human-facing write. FACTORY_RULES.md 10.1.
-    python factory/state.py escalate-note "$TARGET" "$WORKFLOW" "$*" || true
+    python3 factory/state.py escalate-note "$TARGET" "$WORKFLOW" "$*" || true
   fi
   exit 3
 }
@@ -206,7 +206,7 @@ fi
 # judge thinks was asked for.
 materialise() {         # materialise <issue-target>
   ISSUE_FILE="$RUNDIR/issue.md"
-  python factory/state.py body "$1" > "$ISSUE_FILE" \
+  python3 factory/state.py body "$1" > "$ISSUE_FILE" \
     || { echo "could not read $1"; return 1; }
   log "ISSUE_MATERIALISED $1 -> $ISSUE_FILE ($(wc -l < "$ISSUE_FILE") lines)"
 }
@@ -281,7 +281,7 @@ node() {                # node <name> <model> <prompt-file> <allowed-tools>
     #
     # Written to a FILE, not a variable: nodes run inside a subshell, so a variable set
     # here never reaches the escalate() that reports it.
-    python factory/node_failure.py "$RUNDIR/nodes/$name.json" "$name" "$MAX_BUDGET" \
+    python3 factory/node_failure.py "$RUNDIR/nodes/$name.json" "$name" "$MAX_BUDGET" \
       > "$RUNDIR/NODE_FAILURE" 2>/dev/null || echo "$name: reason unavailable" > "$RUNDIR/NODE_FAILURE"
     log "NODE_FAILED $(cat "$RUNDIR/NODE_FAILURE")"
     sed 's/^/    /' "$RUNDIR/nodes/$name.err" | tail -20
@@ -289,7 +289,7 @@ node() {                # node <name> <model> <prompt-file> <allowed-tools>
   fi
 
   # A node can be DENIED A TOOL and still exit 0. The implement node did exactly that: it
-  # asked twice to run a `python -c` its allowlist did not cover, was refused, replied "the
+  # asked twice to run a `python3 -c` its allowlist did not cover, was refused, replied "the
   # command needs approval from you to run", and exited SUCCESSFULLY having changed
   # nothing. The workflow reported "produced no file changes at all" -- true, a good
   # backstop, and the wrong cause.
@@ -298,7 +298,7 @@ node() {                # node <name> <model> <prompt-file> <allowed-tools>
   # plan node is denied tools on almost every run, asks anyway, works around it and writes
   # a good plan. A denial says a node wanted something it could not have. Whether that
   # mattered is decided by whether the node produced anything, which is checked downstream.
-  python factory/node_failure.py --denials-only "$RUNDIR/nodes/$name.json" "$name" \
+  python3 factory/node_failure.py --denials-only "$RUNDIR/nodes/$name.json" "$name" \
     > "$RUNDIR/nodes/$name.denials" 2>/dev/null || true
   if [ -s "$RUNDIR/nodes/$name.denials" ]; then
     log "NODE_DENIED $(head -c 400 "$RUNDIR/nodes/$name.denials")"
@@ -393,7 +393,7 @@ case "$WORKFLOW" in
     prepare_worktree_path "$WT"
     git rev-parse --verify --quiet "$BRANCH" >/dev/null && git branch -D "$BRANCH" >/dev/null 2>&1 || true
     git worktree add "$WT" -b "$BRANCH" "$BASE" >/dev/null 2>&1 || escalate "could not create worktree $WT"
-    python factory/state.py set "$TARGET" state=in-progress || escalate "illegal state transition"
+    python3 factory/state.py set "$TARGET" state=in-progress || escalate "illegal state transition"
 
     (
       cd "$WT"
@@ -401,7 +401,7 @@ case "$WORKFLOW" in
            "Read,Glob,Grep,Bash(git log:*),Bash(git ls-files:*)"
       node plan      "$MODEL_PREMIUM" "$ROOT/factory/prompts/plan.md" \
            "Read,Glob,Grep,Write"
-      # `Bash(python -c:*)` added 2026-08-10. The node could previously execute exactly one
+      # `Bash(python3 -c:*)` added 2026-08-10. The node could previously execute exactly one
       # command -- the quick gate -- so it could not measure anything, and it was handed an
       # issue that is entirely about counting things on a screen. It asked to run a
       # one-liner, was refused, and stopped to ask a human who was not there.
@@ -412,7 +412,7 @@ case "$WORKFLOW" in
       # and that the ratchet refuses a quieter harness. Tool scoping was a nudge, and
       # keeping a nudge that costs a whole lap is not a trade worth making.
       node implement "$MODEL_CHEAP"   "$ROOT/factory/prompts/implement.md" \
-           "Read,Glob,Grep,Edit,Write,Bash(python -c:*),Bash($FACTORY_VALIDATE_QUICK)"
+           "Read,Glob,Grep,Edit,Write,Bash(python3 -c:*),Bash($FACTORY_VALIDATE_QUICK)"
     ) || { git worktree remove "$WT" --force >/dev/null 2>&1 || true
            escalate "$(cat "$RUNDIR/NODE_FAILURE" 2>/dev/null || echo 'a build node failed, reason not recorded')"; }
 
@@ -475,7 +475,7 @@ case "$WORKFLOW" in
     # Node 4: validate. NOT a model. Guard first -- a change that touched a protected
     # file has already invalidated everything downstream of it.
     log "NODE validate (no model)"
-    python factory/guard.py --base "$BASE" --head "$BRANCH" \
+    python3 factory/guard.py --base "$BASE" --head "$BRANCH" \
       || { git worktree remove "$WT" --force >/dev/null 2>&1 || true
            escalate "protected-path guard failed (FACTORY_RULES.md 6.1) - auto-reject, no fix attempt"; }
 
@@ -531,7 +531,7 @@ case "$WORKFLOW" in
       PR_TITLE="$(grep -m1 '^title:' "$PRFILE" | cut -d: -f2- | sed 's/^ *//' || true)"
       [ -n "$PR_TITLE" ] || PR_TITLE="$TITLE"
       # Body is everything after the front matter, plus the link GitHub acts on.
-      python -c "import io,sys;t=io.open(sys.argv[1],encoding='utf-8').read();print(t.split('---',2)[2].lstrip() if t.startswith('---') else t)"         "$PRFILE" > "$RUNDIR/pr.body.md"
+      python3 -c "import io,sys;t=io.open(sys.argv[1],encoding='utf-8').read();print(t.split('---',2)[2].lstrip() if t.startswith('---') else t)"         "$PRFILE" > "$RUNDIR/pr.body.md"
       printf '\n---\nCloses #%s\n\nOpened by `factory/run-workflow.sh` (implement-issue, run `%s`). No human read this diff.\n' \
         "$ISSUE_NUM" "$RUN" >> "$RUNDIR/pr.body.md"
 
@@ -539,7 +539,7 @@ case "$WORKFLOW" in
       # that was sent. A PR body is a human-facing write like any other, and the one
       # human-facing write this factory has already got wrong went out through a
       # hand-rolled `gh` call. FACTORY_RULES.md 10.1.
-      PR_OUT="$(python factory/state.py create-pr "$PR_TITLE" main "$BRANCH" \
+      PR_OUT="$(python3 factory/state.py create-pr "$PR_TITLE" main "$BRANCH" \
                   < "$RUNDIR/pr.body.md")" \
         || escalate "could not open the pull request, or its body did not survive the round trip"
       printf '%s\n' "$PR_OUT"
@@ -547,7 +547,7 @@ case "$WORKFLOW" in
       PR_URL="$(printf '%s' "$PR_OUT" | grep '^PR_URL=' | cut -d= -f2- || true)"
       log "PR_OPENED $PR_URL"
 
-      python factory/state.py set "gh:pr:$PR_NUM" state=open \
+      python3 factory/state.py set "gh:pr:$PR_NUM" state=open \
         || escalate "could not label the new PR"
       echo "$PR_URL" > "$RUNDIR/pr.url"
     fi
@@ -615,7 +615,7 @@ case "$WORKFLOW" in
     git show "$BASE:FACTORY_RULES.md" > "$RUNDIR/FACTORY_RULES.base.md"
     git show "$BASE:CLAUDE.md"        > "$RUNDIR/CLAUDE.base.md"
 
-    python factory/tripwire.py "$WT" \
+    python3 factory/tripwire.py "$WT" \
       || { git worktree remove "$WT" --force >/dev/null 2>&1 || true
            escalate "TRIPWIRE: a builder artifact is in the validator's tree; its verdict is not independent"; }
 
@@ -623,7 +623,7 @@ case "$WORKFLOW" in
     # on the spot with `set -e` and no escalation -- the same silent shape that made the
     # fix loop unreachable. This is also the write that CLAIMS the PR: everything below
     # assumes a validation owns it.
-    python factory/state.py set "$TARGET" state=validating \
+    python3 factory/state.py set "$TARGET" state=validating \
       || { git worktree remove "$WT" --force >/dev/null 2>&1 || true
            escalate "could not move $TARGET to 'validating'; the validation cannot claim a PR it is not allowed to hold"; }
 
@@ -634,7 +634,7 @@ case "$WORKFLOW" in
     # the old, broken guard, which is exactly how this was found. Same principle as
     # reading governance from the base branch (FACTORY_RULES.md 9), applied to the code
     # that does the enforcing rather than the rules it enforces.
-    python factory/guard.py --base "$BASE" --head "$CHECKOUT" > "$RUNDIR/gate.log" 2>&1 \
+    python3 factory/guard.py --base "$BASE" --head "$CHECKOUT" > "$RUNDIR/gate.log" 2>&1 \
       || { git worktree remove "$WT" --force >/dev/null 2>&1 || true
            # `|| true`, because a command inside a `|| { ... }` block does NOT chain: under
            # set -e a failure here aborts the whole block, so `escalate` on the next line
@@ -642,7 +642,7 @@ case "$WORKFLOW" in
            # That would turn a protected-path guard failure -- a PR touching factory/** --
            # into an exit 1 with no escalation and no notification, on the one path whose
            # entire job is to stop a branch from rewriting its own enforcement code.
-           python factory/state.py set "$TARGET" state=rejected || true
+           python3 factory/state.py set "$TARGET" state=rejected || true
            escalate "protected-path guard failed on the branch under review"; }
 
     ( cd "$WT" && $FACTORY_VALIDATE_CMD ) >> "$RUNDIR/gate.log" 2>&1 || log "GATE_RED"
@@ -707,7 +707,7 @@ case "$WORKFLOW" in
     fi
 
     git worktree remove "$WT" --force >/dev/null 2>&1 || true
-    python factory/state.py bump-attempt "$TARGET" \
+    python3 factory/state.py bump-attempt "$TARGET" \
       || escalate "the fix is committed but the attempt counter did not move; another fix would not be counted and the cap would never be reached"
 
     # ONE transition, to `open`, and it used to be two: `validating` then `open`. The
@@ -721,7 +721,7 @@ case "$WORKFLOW" in
     # `open` is the right target on its own: a fixed PR is a PR waiting to be validated.
     # The dispatcher picks it up and validate-pr sets `validating` itself after the
     # tripwire, which is the only place allowed to.
-    python factory/state.py set "$TARGET" state=open \
+    python3 factory/state.py set "$TARGET" state=open \
       || escalate "the fix is committed on $BRANCH but the PR could not be returned to 'open' for re-validation; it would otherwise sit in a state the dispatcher does not look at"
     log "fixed; back to the independent validator (attempt $((ATTEMPTS + 1))/2)"
     ;;
@@ -741,7 +741,7 @@ case "$WORKFLOW" in
     # GitHub move is only what made it visible, because there is no front matter to edit.
     DEC="$RUNDIR/triage.json"
     [ -s "$DEC" ] || escalate "the triage node wrote no decision at $DEC"
-    python - "$DEC" <<'PY' > "$RUNDIR/triage.env" || escalate "triage decision is not readable JSON"
+    python3 - "$DEC" <<'PY' > "$RUNDIR/triage.env" || escalate "triage decision is not readable JSON"
 import json, sys, shlex
 d = json.load(open(sys.argv[1], encoding="utf-8"))
 st = d.get("state", "")
@@ -754,16 +754,16 @@ PY
     . "$RUNDIR/triage.env"
 
     # ONE process, one string, one verified write. The pipeline this replaces echoed a
-    # header, piped a `python -c` through the platform codepage, and handed the result to
+    # header, piped a `python3 -c` through the platform codepage, and handed the result to
     # a `gh` flag that does not read files -- so the correct rejection on issue #3 reached
     # GitHub as the two characters `@-`, and nothing noticed, because the only thing
     # checked afterwards was the exit code. FACTORY_RULES.md 10.1.
-    python factory/state.py triage-note "$TARGET" "$DEC"       || escalate "the decision was made but could not be published; a verdict the filer cannot read is not a verdict"
+    python3 factory/state.py triage-note "$TARGET" "$DEC"       || escalate "the decision was made but could not be published; a verdict the filer cannot read is not a verdict"
 
     if [ -n "$DEC_PRIORITY" ]; then
-      python factory/state.py set "$TARGET" "priority=$DEC_PRIORITY" || true
+      python3 factory/state.py set "$TARGET" "priority=$DEC_PRIORITY" || true
     fi
-    python factory/state.py set "$TARGET" "state=$DEC_STATE" \
+    python3 factory/state.py set "$TARGET" "state=$DEC_STATE" \
       || escalate "triage proposed an illegal transition to '$DEC_STATE'"
     log "TRIAGED $TARGET -> $DEC_STATE"
 
@@ -785,7 +785,7 @@ PY
     # turn a correct triage into a failed workflow. The notification is the only missing
     # half, so that is the half added.
     if [ "$DEC_STATE" = "needs-human" ]; then
-      TRIAGE_WHY="$(python -c "import json,sys;print((json.load(open(sys.argv[1],encoding='utf-8')).get('note') or 'escalated at triage').strip().replace(chr(10),' ')[:300])" "$DEC" 2>/dev/null || echo "escalated at triage")"
+      TRIAGE_WHY="$(python3 -c "import json,sys;print((json.load(open(sys.argv[1],encoding='utf-8')).get('note') or 'escalated at triage').strip().replace(chr(10),' ')[:300])" "$DEC" 2>/dev/null || echo "escalated at triage")"
       echo "- $(date -u +%FT%TZ)  $TARGET  (triage)  $TRIAGE_WHY" >> .factory/needs-human.md
       log "$(factory_notify "$TARGET" "(triage) $TRIAGE_WHY")"
     fi

@@ -89,7 +89,7 @@ fi
 # stop button built that way works only while the network does. This one is a label you
 # ADD, and it FAILS CLOSED: if the stop state cannot be read, nothing dispatches. An
 # unreadable stop button is a stop button you do not have.
-STOP_OUT="$(python factory/state.py stop-requested 2>&1)" || {
+STOP_OUT="$(python3 factory/state.py stop-requested 2>&1)" || {
   log "STOPPED: $STOP_OUT"
   exit 0
 }
@@ -130,7 +130,7 @@ reap_stalled() {
     why="left in 'in-progress' with no PR record and no run holding it; an implement lap died before it opened one"
   fi
   log "STALLED $target $why"
-  python factory/state.py set "$target" state=needs-human || true
+  python3 factory/state.py set "$target" state=needs-human || true
   echo "- $(date -u +%FT%TZ)  $target  (orchestrator)  $why" >> .factory/needs-human.md
   log "$(factory_notify "$target" "$why")"
   return 0
@@ -141,7 +141,7 @@ if [ "$DRY_RUN" -eq 0 ]; then
     [ -z "${STALL_TARGET:-}" ] && continue
     reap_stalled "$STALL_TARGET" validating validate-pr || true
   done <<EOF
-$(python factory/state.py list prs --state validating 2>/dev/null || true)
+$(python3 factory/state.py list prs --state validating 2>/dev/null || true)
 EOF
 
   # The ISSUE half. `implement-issue` sets `in-progress` before any node runs, so a lap
@@ -154,7 +154,7 @@ EOF
       *issues*|gh:issue:*) reap_stalled "$STALL_TARGET" in-progress implement-issue || true ;;
     esac
   done <<EOF
-$(python factory/state.py next 2>/dev/null | grep '^stalled' | cut -f2 || true)
+$(python3 factory/state.py next 2>/dev/null | grep '^stalled' | cut -f2 || true)
 EOF
 fi
 
@@ -206,7 +206,7 @@ EOF
 # 5  + it writes its own issues from the mission
 if [ "$AUTONOMY" -lt 1 ]; then
   log "AUTONOMY=0: nothing dispatches. Set FACTORY_AUTONOMY=1 when a lap has been proven by hand."
-  log "would run: $(python factory/state.py next | tr '\t' ' ')"
+  log "would run: $(python3 factory/state.py next | tr '\t' ' ')"
   exit 0
 fi
 
@@ -326,9 +326,9 @@ SLOTS=$((MAX_PARALLEL - IN_FLIGHT))
 while [ "$SLOTS" -gt 0 ]; do
   SLOTS=$((SLOTS - 1))
   if [ -n "$EXCLUDE" ]; then
-    NEXT="$(python factory/state.py next --exclude "$EXCLUDE")"
+    NEXT="$(python3 factory/state.py next --exclude "$EXCLUDE")"
   else
-    NEXT="$(python factory/state.py next)"
+    NEXT="$(python3 factory/state.py next)"
   fi
   ACTION="$(echo "$NEXT" | cut -f1)"
   TARGET="$(echo "$NEXT" | cut -f2)"
@@ -362,7 +362,7 @@ while [ "$SLOTS" -gt 0 ]; do
       # over an already-escalated PR does NOT -- `cmd_set` returns 0 early when the new
       # state equals the old one, so `needs-human` -> `needs-human` is a no-op, not an
       # error. Checked, because the opposite is the obvious assumption and it is wrong.)
-      python factory/state.py set "$TARGET" state=needs-human || true
+      python3 factory/state.py set "$TARGET" state=needs-human || true
       { echo "- $(date -u +%FT%TZ)  $TARGET  fix-attempt cap reached (FACTORY_RULES.md 8)"; } \
         >> .factory/needs-human.md
       # AND THE ISSUE BEHIND IT, for the reason gate.sh's fail() already does it: a PR
@@ -370,9 +370,9 @@ while [ "$SLOTS" -gt 0 ]; do
       # nothing can see. Observed: the cap fired, the PR was labelled, the issue was not,
       # and the very next `state.py next` moved on to unrelated work while the escalated
       # issue sat in a state that means "being worked on" with nothing working on it.
-      CAP_ISSUE="$(python factory/state.py get "$TARGET" 2>/dev/null | grep '^issue=' | head -1 | cut -d= -f2- || true)"
+      CAP_ISSUE="$(python3 factory/state.py get "$TARGET" 2>/dev/null | grep '^issue=' | head -1 | cut -d= -f2- || true)"
       if [ -n "${CAP_ISSUE:-}" ]; then
-        python factory/state.py set "$CAP_ISSUE" state=needs-human >/dev/null 2>&1 || true
+        python3 factory/state.py set "$CAP_ISSUE" state=needs-human >/dev/null 2>&1 || true
         echo "- $(date -u +%FT%TZ)  $CAP_ISSUE  its PR $TARGET hit the fix-attempt cap" >> .factory/needs-human.md
       fi
       # The third route into needs-human, and the quietest: nothing failed, a PR simply
@@ -411,7 +411,7 @@ while [ "$SLOTS" -gt 0 ]; do
         bash factory/deploy.sh || log "DEPLOY_FAILED after merging $TARGET - the merge stands; see the log above"
       else
         log "MERGE_FAILED $TARGET - parking it; merge.sh printed the reason above"
-        python factory/state.py set "$TARGET" state=needs-human || true
+        python3 factory/state.py set "$TARGET" state=needs-human || true
         echo "- $(date -u +%FT%TZ)  $TARGET  (orchestrator)  merge refused; see factory/merge.sh output" \
           >> .factory/needs-human.md
         log "$(factory_notify "$TARGET" "merge refused for a PR that passed every gate")"
@@ -447,7 +447,7 @@ while [ "$SLOTS" -gt 0 ]; do
     fi
     log "STALLED $TARGET is 'validating' but no run holds its lock; the validation that claimed it never finished"
     [ "$DRY_RUN" -eq 0 ] && {
-      python factory/state.py set "$TARGET" state=needs-human || true
+      python3 factory/state.py set "$TARGET" state=needs-human || true
       echo "- $(date -u +%FT%TZ)  $TARGET  (orchestrator)  left in 'validating' with no run holding it; a validation died mid-flight" \
         >> .factory/needs-human.md
       log "$(factory_notify "$TARGET" "validation died mid-flight; PR left in 'validating'")"

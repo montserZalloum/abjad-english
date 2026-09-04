@@ -32,7 +32,7 @@ case "$PR_FILE" in
   *)    GH=0; PR_NUM="" ;;
 esac
 
-read_fm() { python factory/state.py get "$PR_FILE" | grep "^$1=" | head -1 | cut -d= -f2-; }
+read_fm() { python3 factory/state.py get "$PR_FILE" | grep "^$1=" | head -1 | cut -d= -f2-; }
 
 BRANCH="$(read_fm branch)"
 ISSUE="$(read_fm issue)"
@@ -56,7 +56,7 @@ fi
 echo "MERGE_START branch=$BRANCH base=$BASE issue=$ISSUE"
 
 # --- re-check, independently -------------------------------------------------
-python factory/guard.py --base "$BASE" --head "$HEAD_REF" \
+python3 factory/guard.py --base "$BASE" --head "$HEAD_REF" \
   || { echo "MERGE_REFUSED: protected-path guard failed on re-check"; exit 1; }
 
 git rev-parse --verify --quiet "$HEAD_REF" >/dev/null \
@@ -76,7 +76,7 @@ git merge-base --is-ancestor "$BASE" "$HEAD_REF" \
        # is legal for this reason; validate-pr rebases before validating, so the requeued
        # PR is judged on the tree that will actually merge.
        echo "MERGE_REFUSED: $BRANCH is behind $BASE - squashing it now would silently drop whatever landed while it was in flight"
-       if python factory/state.py set "$PR_FILE" state=open >/dev/null 2>&1; then
+       if python3 factory/state.py set "$PR_FILE" state=open >/dev/null 2>&1; then
          echo "MERGE_REQUEUED: $PR_FILE is back to 'open'; the validator will rebase it and re-judge the rebased tree"
        else
          echo "MERGE_REFUSED: could not requeue $PR_FILE - it needs a human"
@@ -89,10 +89,10 @@ if [ "$GH" -eq 1 ]; then
   # says what the factory believes; `state` and `mergeable` say what GitHub will actually
   # do, and a PR closed or made conflicting since validation must not be squashed anyway.
   PR_JSON="$(gh pr view "$PR_NUM" --json state,mergeable,isDraft,baseRefName,mergeStateStatus)"
-  PR_STATE="$(python -c "import json,sys;print(json.loads(sys.argv[1])['state'])" "$PR_JSON")"
-  PR_MERGEABLE="$(python -c "import json,sys;print(json.loads(sys.argv[1])['mergeable'])" "$PR_JSON")"
-  PR_DRAFT="$(python -c "import json,sys;print(json.loads(sys.argv[1])['isDraft'])" "$PR_JSON")"
-  PR_BASE="$(python -c "import json,sys;print(json.loads(sys.argv[1])['baseRefName'])" "$PR_JSON")"
+  PR_STATE="$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['state'])" "$PR_JSON")"
+  PR_MERGEABLE="$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['mergeable'])" "$PR_JSON")"
+  PR_DRAFT="$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['isDraft'])" "$PR_JSON")"
+  PR_BASE="$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['baseRefName'])" "$PR_JSON")"
 
   [ "$PR_STATE" = "OPEN" ]      || { echo "MERGE_REFUSED: PR #$PR_NUM is $PR_STATE"; exit 1; }
   [ "$PR_DRAFT" = "False" ]     || { echo "MERGE_REFUSED: PR #$PR_NUM is a draft"; exit 1; }
@@ -110,7 +110,7 @@ if [ "$GH" -eq 1 ]; then
   #
   # Named here instead, with the remedy, because the remedy is a REPO SETTING and no
   # amount of re-running or re-validating will change it.
-  PR_MERGE_STATE="$(python -c "import json,sys;print(json.loads(sys.argv[1]).get('mergeStateStatus',''))" "$PR_JSON")"
+  PR_MERGE_STATE="$(python3 -c "import json,sys;print(json.loads(sys.argv[1]).get('mergeStateStatus',''))" "$PR_JSON")"
   case "$PR_MERGE_STATE" in
     BLOCKED)
       echo "MERGE_REFUSED: GitHub reports mergeStateStatus=BLOCKED on PR #$PR_NUM."
@@ -243,15 +243,15 @@ fi
 # Report the merge, then report the bookkeeping separately and loudly.
 BOOKKEEPING_FAILED=""
 
-python factory/state.py set "$PR_FILE" state=merged \
+python3 factory/state.py set "$PR_FILE" state=merged \
   || BOOKKEEPING_FAILED="$BOOKKEEPING_FAILED PR-record($PR_FILE)"
 
 if [ "$GH" -eq 1 ]; then
-  python factory/state.py set "$ISSUE" state=done \
+  python3 factory/state.py set "$ISSUE" state=done \
     || BOOKKEEPING_FAILED="$BOOKKEEPING_FAILED issue($ISSUE)"
 else
-  python factory/state.py set "issues/$(basename "$ISSUE")" state=done 2>/dev/null \
-    || python factory/state.py set "$ISSUE" state=done \
+  python3 factory/state.py set "issues/$(basename "$ISSUE")" state=done 2>/dev/null \
+    || python3 factory/state.py set "$ISSUE" state=done \
     || BOOKKEEPING_FAILED="$BOOKKEEPING_FAILED issue($ISSUE)"
 fi
 
