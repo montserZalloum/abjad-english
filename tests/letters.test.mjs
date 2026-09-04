@@ -13,15 +13,22 @@ test('getLetter throws on an unknown letter instead of returning undefined', () 
 });
 
 test('isComplete distinguishes stubs from complete entries', () => {
-  assert.equal(isComplete(getLetter('C')), false);
+  assert.equal(isComplete(getLetter('D')), false);
   assert.equal(isComplete(getLetter('A')), true);
   assert.equal(isComplete(getLetter('B')), true);
+  assert.equal(isComplete(getLetter('C')), true);
 });
 
 test("B's word starts with B", () => {
   const b = getLetter('B');
   assert.equal(b.word, 'Ball');
   assert.ok(b.word.startsWith('B'));
+});
+
+test("C's word starts with C", () => {
+  const c = getLetter('C');
+  assert.equal(c.word, 'Cat');
+  assert.ok(c.word.startsWith('C'));
 });
 
 test('every letter has an uppercase letter and matching lowercase', () => {
