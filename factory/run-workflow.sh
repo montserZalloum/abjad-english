@@ -398,7 +398,7 @@ case "$WORKFLOW" in
     (
       cd "$WT"
       node prime     "$MODEL_CHEAP"   "$ROOT/factory/prompts/prime.md" \
-           "Read,Glob,Grep,Bash(git log:*),Bash(git ls-files:*)"
+           "Read,Glob,Grep,Bash(git log:*),Bash(git ls-files:*),Bash(rtk:*)"
       node plan      "$MODEL_PREMIUM" "$ROOT/factory/prompts/plan.md" \
            "Read,Glob,Grep,Write"
       # `Bash(python3 -c:*)` added 2026-08-10. The node could previously execute exactly one
@@ -412,7 +412,7 @@ case "$WORKFLOW" in
       # and that the ratchet refuses a quieter harness. Tool scoping was a nudge, and
       # keeping a nudge that costs a whole lap is not a trade worth making.
       node implement "$MODEL_CHEAP"   "$ROOT/factory/prompts/implement.md" \
-           "Read,Glob,Grep,Edit,Write,Bash(python3 -c:*),Bash($FACTORY_VALIDATE_QUICK)"
+           "Read,Glob,Grep,Edit,Write,Bash(python3 -c:*),Bash($FACTORY_VALIDATE_QUICK),Bash(rtk:*),Bash(say:*)"
     ) || { git worktree remove "$WT" --force >/dev/null 2>&1 || true
            escalate "$(cat "$RUNDIR/NODE_FAILURE" 2>/dev/null || echo 'a build node failed, reason not recorded')"; }
 
@@ -498,7 +498,7 @@ case "$WORKFLOW" in
     # needs fails somewhere downstream of the denial, and the escalation names the
     # symptom. `git fetch` is deliberately NOT here: it mutates refs.
     node review "$MODEL_CHEAP" "$ROOT/factory/prompts/review.md" \
-        "Read,Glob,Grep,Bash(git diff:*),Bash(git show:*),Bash(git log:*),Bash(git status:*),Write" \
+        "Read,Glob,Grep,Bash(git diff:*),Bash(git show:*),Bash(git log:*),Bash(git status:*),Bash(rtk:*),Write" \
         || escalate "review node failed"
     [ -s "$PRFILE" ] || escalate "the review node wrote no PR record at $PRFILE"
 
@@ -652,7 +652,7 @@ case "$WORKFLOW" in
     log "DIFF_RENDERED $(wc -l < "$RUNDIR/diff.patch") lines -> $RUNDIR/diff.patch"
 
     ( cd "$WT" && node judge "$MODEL_CHEAP" "$ROOT/factory/prompts/judge.md" \
-        "Read,Bash(git diff:*),Write" ) || escalate "judge node failed"
+        "Read,Bash(git diff:*),Bash(rtk:*),Write" ) || escalate "judge node failed"
 
     # The verdict must exist before the worktree goes. It is written to the absolute run
     # dir for the same reason the plan is: a path relative to the judge's cwd lands inside
@@ -693,7 +693,7 @@ case "$WORKFLOW" in
     git worktree add "$WT" "$BRANCH" >/dev/null 2>&1 || escalate "could not check out $BRANCH"
 
     ( cd "$WT" && node fix "$MODEL_CHEAP" "$ROOT/factory/prompts/fix.md" \
-        "Read,Glob,Grep,Edit,Write,Bash($FACTORY_VALIDATE_QUICK)" ) \
+        "Read,Glob,Grep,Edit,Write,Bash($FACTORY_VALIDATE_QUICK),Bash(rtk:*),Bash(say:*)" ) \
       || { git worktree remove "$WT" --force >/dev/null 2>&1 || true; escalate "fix node failed"; }
 
     if [ -z "$(git -C "$WT" status --porcelain)" ]; then

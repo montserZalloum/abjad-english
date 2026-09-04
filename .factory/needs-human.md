@@ -1,1 +1,3 @@
 - 2026-09-04T09:57:49Z  issues/does-not-exist.md  (implement-issue)  could not read the issue
+- 2026-09-04T10:22:56Z  gh:issue:1  (implement-issue)  the implement node produced no file changes at all -- nothing to validate. It was denied tools: prime: was DENIED a tool it asked for and stopped to ask a human who is not there. Denied: Bash(git ls-files && echo --- && rtk git log -10 --oneline && echo --- && rtk git status --short); Bash(rtk git log -10 --oneline && echo --- && rtk git status --short); Bash(rtk git log -10 --oneline). Either the workflow's allowlist is too narrow for what the issue needs, or the plan specified a step this node cannot execute (FACTORY_RULES.md 8)
+implement: was DENIED a tool it asked for and stopped to as

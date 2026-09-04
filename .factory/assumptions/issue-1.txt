@@ -1,0 +1,38 @@
+word_b=Ball | WHY: issue #1 explicitly delegates the choice to the plan node
+  ("the plan node may pick it; record the choice") — a product value, not a
+  judgement value (FACTORY_RULES §7.1). Satisfies every validator rule:
+  /^[A-Z][a-z]+$/, starts with B, distinct from Apple, child-appropriate
+  (MISSION invariant 3), and trivially drawable as a flat SVG. A nearby wrong
+  value (multiword, hyphenated, or a word not starting with B) breaks
+  scripts/validateContent.mjs.
+  CHANGE IF: a human prefers a different B word; only the letters.js entry and
+  the SVG would need to change.
+
+arabic_b=كرة transliteration_b=بول | WHY: follows the A-entry convention in
+  content/letters.js:9-17 — `arabic` is the translation (Apple → تفاحة), and
+  `transliteration` is the *English word* sounded out in Arabic script
+  (Apple → أبْل, so Ball → بول). Both satisfy the validator's Arabic-script
+  requirement. A wrong pairing (translation in the transliteration slot, or
+  non-Arabic script) breaks validateContent.mjs:38-41.
+  CHANGE IF: a native speaker prefers a different approximation (e.g. with
+  diacritics, بَوْل).
+
+audio_source_q1=say-generated m4a: `say -o assets/audio/B.m4a "B"` | WHY:
+  MISSION Q1 (audio sourcing) is an open question, which means "propose and
+  record", not "stop" (MISSION.md:153-159, FACTORY_RULES §7.1). The incumbent
+  A.m4a is `say`-output (ISO Media, ALAC/AAC-LC) speaking the letter name, so
+  the same command for B matches the established pattern and adds a Q1 data
+  point. The merge is held for a human on this assumption regardless. A wrong
+  value here (recording of the word instead of the letter, or a different
+  codec) would diverge from A's behavior on the same screen.
+  CHANGE IF: a human decides Q1 is recorded voice or another TTS — then all
+  letter audio, including A.m4a, gets re-sourced as its own issue.
+
+image_source_q2=hand-authored SVG, matching apple.svg style | WHY: MISSION Q2
+  (image sourcing) is open; the repo's only precedent (assets/images/apple.svg)
+  is hand-authored flat SVG with viewBox 0 0 200 200 and no tooling, and the
+  dependency policy forbids adding image tooling. Wrong alternative (raster
+  asset, external generator, new dev dependency) would contradict CLAUDE.md's
+  no-dependencies rule.
+  CHANGE IF: a human decides Q2 is a licensed or generated art set — that
+  becomes a cross-letter asset issue, not this one.
