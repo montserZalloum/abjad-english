@@ -12,3 +12,5 @@ scratch/
 builds/
 secrets.json
 credentials.json
+.archon/
+service-account.json

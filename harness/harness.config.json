@@ -19,7 +19,7 @@
   },
   "browser": {
     "_note": "The E2E and holdout drive headless Chrome over CDP (harness/browser.mjs), the pattern from letter-islands. install_check runs at setup via factory_doctor.",
-    "install_check": "test -x \"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\"",
+    "install_check": "bash harness/check-browser.sh",
     "install_hint": "Install Google Chrome, or set CHROME to another Chromium binary"
   }
 }
