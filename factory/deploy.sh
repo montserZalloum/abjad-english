@@ -166,3 +166,30 @@ ls -1dt "$BUILDS"/*/ 2>/dev/null | tail -n +11 | xargs -r rm -rf
 
 echo "DEPLOYED sha=$SHA"
 echo "LIVE: $POINTER -> $SHA"
+
+# --- the live URL, the gate the user chose -------------------------------------
+# The local snapshot proving healthy is not the loop closing - a stranger seeing the
+# change is. Pages rebuilds on the merge push; poll until the live URL answers with
+# the app's own title, or fail loudly. No push trigger involved, so nothing can be
+# silently skipped.
+if [ -n "${FACTORY_LIVE_URL:-}" ]; then
+  echo "LIVE_CHECK_START url=$FACTORY_LIVE_URL"
+  LIVE_OK=0
+  for i in $(seq 1 12); do
+    BODY="$(curl -fsSL --max-time 15 "$FACTORY_LIVE_URL" 2>/dev/null || true)"
+    if [ -n "$BODY" ] && printf '%s' "$BODY" | grep -q "${FACTORY_LIVE_CONTAINS:-}"; then
+      LIVE_OK=1
+      break
+    fi
+    sleep 20
+  done
+  if [ "$LIVE_OK" -eq 1 ]; then
+    echo "LIVE_OK url=$FACTORY_LIVE_URL"
+  else
+    echo "LIVE_CHECK_FAILED: $FACTORY_LIVE_URL never answered with the expected content."
+    echo "  The merge stands. The site did not update - that is a deploy incident, not a code one."
+    exit 1
+  fi
+else
+  echo "LIVE_CHECK_SKIPPED FACTORY_LIVE_URL unset - the loop is NOT closed to real users"
+fi

@@ -148,11 +148,18 @@ FACTORY_BUILD_INCLUDE="${FACTORY_BUILD_INCLUDE:-index.html src content styles as
 # A command that starts the built snapshot and proves it worked. Run from inside the
 # build directory. Not "did the process exit 0" - a process that starts, hangs and
 # returns zero is indistinguishable from a healthy one without a positive marker.
-FACTORY_HEALTH_CMD="${FACTORY_HEALTH_CMD:-}"
+FACTORY_HEALTH_CMD="${FACTORY_HEALTH_CMD:-node scripts/healthcheck.mjs}"
 
 # Extended regexes that must ALL appear in the health output. Assert an outcome a user
 # would notice, not a status code.
-FACTORY_HEALTH_MARKERS="${FACTORY_HEALTH_MARKERS:-}"
+FACTORY_HEALTH_MARKERS="${FACTORY_HEALTH_MARKERS:-HEALTHY}"
+
+# The live URL a stranger sees, and the string its body must contain. deploy.sh polls it
+# after every merge. This app deploys as GitHub Pages from main: the merge IS the
+# publish, and the Pages build fires on the push because the factory merges as the
+# user's own gh token, not GITHUB_TOKEN.
+FACTORY_LIVE_URL="${FACTORY_LIVE_URL:-https://montserzalloum.github.io/abjad-english/}"
+FACTORY_LIVE_CONTAINS="${FACTORY_LIVE_CONTAINS:-أبجد إنجليزي}"
 
 # --- the trigger (component 2) -----------------------------------------------
 # Read by factory/install-trigger.sh. Slower than feels right: a fast loop multiplies
@@ -244,6 +251,8 @@ export FACTORY_AGENT \
        FACTORY_INTERVAL_MINUTES \
        FACTORY_LOCK_GRACE_MINUTES \
        FACTORY_LOCK_STALE_MINUTES \
+       FACTORY_LIVE_CONTAINS \
+       FACTORY_LIVE_URL \
        FACTORY_MAX_BUDGET_USD \
        FACTORY_MAX_FIX_ATTEMPTS \
        FACTORY_MAX_PARALLEL \
